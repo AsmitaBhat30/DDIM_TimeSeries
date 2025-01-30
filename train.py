@@ -19,6 +19,7 @@ def train(model, config, train_loader, optimizer, lr_scheduler, loss_fn, diffusi
                 optimizer.zero_grad()
 
                 xt, t, noise = diffusion.forward_diffusion(train_batch)
+                # reverse diffusion
                 noise_pred = model(xt, t)
                 loss = loss_fn(noise_pred, noise)
                 loss.backward()
@@ -43,7 +44,10 @@ def train(model, config, train_loader, optimizer, lr_scheduler, loss_fn, diffusi
             with torch.no_grad():
                 with tqdm(valid_loader, mininterval=5.0, maxinterval=50.0) as it:
                     for batch_no, valid_batch in enumerate(it, start=1):
-                        loss = model(valid_batch, is_train=0)
+                        xt, t, noise = diffusion.forward_diffusion(valid_batch)
+                        # reverse diffusion
+                        noise_pred = model(xt, t)
+                        loss = loss_fn(noise_pred, noise)
                         avg_loss_valid += loss.item()
                         itera.set_postfix(
                             ordered_dict={

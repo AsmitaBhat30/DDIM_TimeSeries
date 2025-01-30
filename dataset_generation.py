@@ -33,10 +33,10 @@ def load_electricity_data(datatype):
     return main_data
 
 
-def get_dataloader(datatype, batch_size=8):
+def get_dataloader(datatype, device, batch_size=8):
 
     data = load_electricity_data(datatype)
-    data = torch.tensor(data, dtype=torch.float32)
+    data = torch.tensor(data, dtype=torch.float32, device=device)
 
     generator1 = torch.Generator().manual_seed(49)
     train_data, valid_data, test_data = torch.utils.data.random_split(data, [0.7, 0.2, 0.1], generator=generator1)

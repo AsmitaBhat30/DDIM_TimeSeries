@@ -46,13 +46,15 @@ with open(foldername + "config.json", "w") as f:
 # get dataloaders
 train_loader, valid_loader, test_loader = get_dataloader(
     datatype=args.datatype,
+    device=args.device,
     batch_size=config["train"]["batch_size"],
 )
 
 # get model
-model = diff_CSDI(config['diffusion'])
-diffusion = CSDI_Generation(model, config['diffusion'])
-optimizer = Adam(model.parameters(), lr=config["train"]["lr"], weight_decay=1e-6)
+diff_model = diff_CSDI(config['diffusion'])
+diff_model.to(args.device)
+diffusion = CSDI_Generation(diff_model, config['diffusion'], device=args.device)
+optimizer = Adam(diff_model.parameters(), lr=config["train"]["lr"], weight_decay=1e-6)
 p1 = int(0.75 * config["train"]["epochs"])
 p2 = int(0.9 * config["train"]["epochs"])
 lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
@@ -62,7 +64,7 @@ loss_fn = nn.MSELoss()
 
 if args.modelfolder == "":
     train(
-        model,
+        diff_model,
         config["train"],
         train_loader,
         optimizer,
@@ -73,11 +75,11 @@ if args.modelfolder == "":
         foldername=foldername,
     )
 else:
-    model.load_state_dict(torch.load("./save/" + args.modelfolder + "/model.pth"))
-model.target_dim = target_dim
-evaluate(
-    model,
-    test_loader,
-    nsample=args.nsample,
-    foldername=foldername,
-)
+    diff_model.load_state_dict(torch.load("./save/" + args.modelfolder + "/model.pth"))
+    diff_model.target_dim = target_dim
+    evaluate(
+        diff_model,
+        test_loader,
+        nsample=args.nsample,
+        foldername=foldername,
+    )
