@@ -3,16 +3,16 @@ from torch.utils.data import DataLoader, Dataset
 import torch
 import pdb
 
-class Forecasting_Dataset(Dataset):
+class Generation_Dataset(Dataset):
     def __init__(self, data, seq_length=192):
         self.seq_length = seq_length
         self.data = data
 
     def __getitem__(self, idx):
-        return self.data[idx:idx+self.seq_length]
+        return self.data[idx]
 
     def __len__(self):
-        return len(self.data) - self.seq_length
+        return len(self.data)
 
 
 def load_electricity_data(datatype):
@@ -41,12 +41,12 @@ def get_dataloader(datatype, device, batch_size=8):
     generator1 = torch.Generator().manual_seed(49)
     train_data, valid_data, test_data = torch.utils.data.random_split(data, [0.7, 0.2, 0.1], generator=generator1)
     train_loader = DataLoader(
-        Forecasting_Dataset(train_data), batch_size=batch_size, shuffle=1)
+        Generation_Dataset(train_data), batch_size=batch_size, shuffle=1)
 
     valid_loader = DataLoader(
-        Forecasting_Dataset(valid_data), batch_size=batch_size, shuffle=0)
+        Generation_Dataset(valid_data), batch_size=batch_size, shuffle=0)
 
     test_loader = DataLoader(
-        Forecasting_Dataset(test_data), batch_size=batch_size, shuffle=0)
+        Generation_Dataset(test_data), batch_size=batch_size, shuffle=0)
 
     return train_loader, valid_loader, test_loader
