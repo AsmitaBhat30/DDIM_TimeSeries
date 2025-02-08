@@ -17,7 +17,6 @@ def train(model, config, train_loader, optimizer, lr_scheduler, loss_fn, diffusi
         with tqdm(train_loader, mininterval=5.0, maxinterval=50.0) as itera:
             for batch_no, train_batch in enumerate(itera, start=1):
                 optimizer.zero_grad()
-
                 xt, t, noise = diffusion.forward_diffusion(train_batch)
                 # reverse diffusion
                 noise_pred = model(xt, t)

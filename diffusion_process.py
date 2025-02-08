@@ -33,27 +33,3 @@ class CSDI_Generation():
         xt = (alpha_cumprod[t] ** 0.5).unsqueeze(-1).unsqueeze(-1) * batch + torch.sqrt(1 - alpha_cumprod[t]).unsqueeze(-1).unsqueeze(-1) * noise
 
         return xt, t, noise
-
-
-
-
-    def evaluate(self, batch, n_samples):
-        (
-            observed_data,
-            observed_mask,
-            observed_tp,
-            gt_mask,
-            _,
-            _,
-            feature_id,
-        ) = self.process_data(batch)
-
-        with torch.no_grad():
-            cond_mask = gt_mask
-            target_mask = observed_mask * (1 - gt_mask)
-
-            side_info = self.get_side_info(observed_tp, cond_mask)
-
-            samples = self.impute(observed_data, cond_mask, side_info, n_samples)
-
-        return samples, observed_data, target_mask, observed_mask, observed_tp

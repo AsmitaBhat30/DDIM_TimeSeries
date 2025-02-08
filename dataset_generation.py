@@ -9,10 +9,10 @@ class Generation_Dataset(Dataset):
         self.data = data
 
     def __getitem__(self, idx):
-        return self.data[idx]
+        return self.data[idx: idx + self.seq_length]
 
     def __len__(self):
-        return len(self.data)
+        return len(self.data) - self.seq_length + 1
 
 
 def load_electricity_data(datatype):
