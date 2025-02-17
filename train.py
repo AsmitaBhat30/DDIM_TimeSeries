@@ -1,18 +1,24 @@
 import numpy as np
 import torch
 from tqdm import tqdm
+from diffusers import DDIMScheduler
 import pickle
 import pdb
 
 
-def train(model, config, train_loader, optimizer, lr_scheduler, loss_fn, diffusion, valid_loader=None, valid_epoch_interval=20, foldername=""):
+def train(model, config, train_loader, batch_size, optimizer, lr_scheduler, diff_loss, constrained_optimization_loss, diffusion, valid_loader=None, valid_epoch_interval=20, foldername=""):
 
     if foldername != "":
         output_path = foldername + "/model.pth"
 
+    # define scheduler
+    repo_id = "google/ddpm-church-256"
+    scheduler = DDIMScheduler.from_config(repo_id, num_train_timesteps=50)
+    scheduler.set_timesteps(num_inference_steps=50)
+
     best_valid_loss = 1e10
     for epoch_no in range(config["epochs"]):
-        avg_loss = 0
+        avg_diff_loss, avg_cop_loss = 0, 0
         model.train()
         with tqdm(train_loader, mininterval=5.0, maxinterval=50.0) as itera:
             for batch_no, train_batch in enumerate(itera, start=1):
@@ -20,14 +26,41 @@ def train(model, config, train_loader, optimizer, lr_scheduler, loss_fn, diffusi
                 xt, t, noise = diffusion.forward_diffusion(train_batch)
                 # reverse diffusion
                 noise_pred = model(xt, t)
-                loss = loss_fn(noise_pred, noise)
-                loss.backward()
-                avg_loss += loss.item()
+                d_loss = diff_loss(noise_pred, noise)
+                d_loss.backward()
+
+                # generate samples
+
+                with torch.no_grad():
+                    tensor_list = []
+                    for i in range(batch_size):
+                        sample = torch.randn(1, 192, 370).to('cuda')
+                        for i, t in enumerate(scheduler.timesteps):
+                            # 1. predict noise residual
+
+                            residual = model(sample, t)
+
+                            # 2. compute previous image and set x_t -> x_t-1
+                            sample = scheduler.step(residual, t, sample)
+                            sample = sample['prev_sample']
+                        tensor_list.append(sample)
+
+                #torch.enable_grad()
+                sample = sample.clone().detach().requires_grad_(True)
+                generated_batch = torch.cat(tensor_list, dim=0).clone().detach().requires_grad_(True)
+
+                cop_loss = constrained_optimization_loss(train_batch, generated_batch)
+                cop_loss.backward()
+
+                avg_diff_loss += d_loss.item()
+                avg_cop_loss += cop_loss.item()
+
                 optimizer.step()
 
                 itera.set_postfix(
                     ordered_dict={
-                        "avg_epoch_loss": avg_loss / batch_no,
+                        "avg_diff_epoch_loss": avg_diff_loss / batch_no,
+                        "avg_cop_epoch_loss": avg_cop_loss / batch_no,
                         "epoch": epoch_no,
                     },
                     refresh=False,

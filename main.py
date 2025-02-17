@@ -49,7 +49,7 @@ train_loader, valid_loader, test_loader = get_dataloader(
     device=args.device,
     batch_size=config["train"]["batch_size"],
 )
-
+batch_size = config["train"]["batch_size"]
 # get model
 diff_model = diff_CSDI(config['diffusion'])
 diff_model.to(args.device)
@@ -60,16 +60,19 @@ p2 = int(0.9 * config["train"]["epochs"])
 lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
     optimizer, milestones=[p1, p2], gamma=0.1
 )
-loss_fn = nn.MSELoss()
+diff_loss = nn.MSELoss()
+constrained_optimization_loss = nn.MSELoss()
 
 if args.modelfolder == "":
     train(
         diff_model,
         config["train"],
         train_loader,
+        batch_size,
         optimizer,
         lr_scheduler,
-        loss_fn,
+        diff_loss,
+        constrained_optimization_loss,
         diffusion,
         valid_loader=valid_loader,
         foldername=foldername,

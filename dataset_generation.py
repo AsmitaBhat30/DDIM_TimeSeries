@@ -41,7 +41,7 @@ def get_dataloader(datatype, device, batch_size=8):
     generator1 = torch.Generator().manual_seed(49)
     train_data, valid_data, test_data = torch.utils.data.random_split(data, [0.7, 0.2, 0.1], generator=generator1)
     train_loader = DataLoader(
-        Generation_Dataset(train_data), batch_size=batch_size, shuffle=1)
+        Generation_Dataset(train_data), batch_size=batch_size, shuffle=1, drop_last=True)
 
     valid_loader = DataLoader(
         Generation_Dataset(valid_data), batch_size=batch_size, shuffle=0)
